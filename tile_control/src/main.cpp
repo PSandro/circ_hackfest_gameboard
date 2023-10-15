@@ -21,21 +21,33 @@ void setup() {
     init_mfrc522();
 }
 
-void dump_byte_array(byte *buffer, byte bufferSize) {
+void dump_rfid_uid(byte *buffer, byte bufferSize) {
     for (byte i = 0; i < bufferSize; i++) {
         Serial.print(buffer[i] < 0x10 ? " 0" : " ");
         Serial.print(buffer[i], 16);
     }
 }
 
+
+int card_timeout = 0;
+
 void loop() {
   if ( !mfrc522.PICC_IsNewCardPresent() || !mfrc522.PICC_ReadCardSerial()) {
-    return;
+    if (card_timeout > 0) {
+      if (card_timeout == 1) {
+        Serial.println("card removed");
+      }
+      --card_timeout;
+    }
+  } else {
+    if (card_timeout == 0) {
+      Serial.print(F("Card UID:"));
+      dump_rfid_uid(mfrc522.uid.uidByte, mfrc522.uid.size);
+      Serial.println();
+    }
+    card_timeout = 3;
   }
 
-  Serial.print(F("Card UID:"));
-  dump_byte_array(mfrc522.uid.uidByte, mfrc522.uid.size);
-  Serial.println();
-  delay(500);
+  delay(200);
 
 }
