@@ -65,11 +65,10 @@ void loop() {
       --card_timeout;
     }
   } else {
-    if (card_timeout == 0) {
-      Serial.print(F("Card UID:"));
-      dump_rfid_uid(mfrc522.uid.uidByte, mfrc522.uid.size);
-      Serial.println();
-    }
+    // Moved the card UID printing block outside the 'if (card_timeout == 0)' condition
+    Serial.print(F("Card UID:"));
+    dump_rfid_uid(mfrc522.uid.uidByte, mfrc522.uid.size);
+    Serial.println();
     card_timeout = 3;
   }
 
