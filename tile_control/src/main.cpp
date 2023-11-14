@@ -1,4 +1,5 @@
 #include <Arduino.h>
+#include <Adafruit_NeoPixel.h>
 #include <MFRC522.h>
 #include <SPI.h>
 #include "tile.h"
@@ -7,15 +8,20 @@
 
 #define RST_PIN 10
 
+#define LED_PIN 2
+#define NR_OF_LEDS 14
+
+Adafruit_NeoPixel leds(NR_OF_LEDS, LED_PIN, NEO_GRB + NEO_KHZ800);
+
 tile_info_t tiles[] = 
 {
-  {false, 9, {0,0,0,0}, 0, 0, 0},
-  {false, 8, {0,0,0,0}, 0, 0, 0},
-  {false, 7, {0,0,0,0}, 0, 0, 0},
-  {false, 6, {0,0,0,0}, 0, 0, 0},
-  {false, 5, {0,0,0,0}, 0, 0, 0},
-  {false, 4, {0,0,0,0}, 0, 0, 0},
-  {false, 3, {0,0,0,0}, 0, 0, 0},
+  {false, 9, 0, {0,0,0,0}, 0, 0, 0},
+  {false, 8, 8, {0,0,0,0}, 0, 0, 0},
+  {false, 7, 10, {0,0,0,0}, 0, 0, 0},
+  {false, 6, 12, {0,0,0,0}, 0, 0, 0},
+  {false, 5, 4, {0,0,0,0}, 0, 0, 0},
+  {false, 4, 2, {0,0,0,0}, 0, 0, 0},
+  {false, 3, 6, {0,0,0,0}, 0, 0, 0},
 };
 
 const size_t NR_OF_TILES = sizeof(tiles)/sizeof(tiles[0]);
@@ -57,17 +63,16 @@ void dump_byte_array(byte *buffer, byte bufferSize) {
 void setup() {
 
   Serial.begin(115200);
-  while (!Serial)
-    ;
 
   Serial.print(F("Setting up "));
   Serial.print(NR_OF_TILES);
   Serial.println(F(" Readers. Wish me luck."));
 
+  leds.begin();
   SPI.begin();
 
   for (size_t i = 0; i < NR_OF_TILES; i++) {
-    delay(20);
+    delay(50);
     mfrc522[i].PCD_Init(tiles[i].cs_pin, RST_PIN); // Init each MFRC522 card
     Serial.print(F("Reader "));
     Serial.print(i);
@@ -84,20 +89,28 @@ int send_tile_to_serial(tile_info_t tile) {
   return 0;
 }
 
-int read_tile_from_serial(tile_info_t *tile) {
-  if (Serial.available() < 1) {
-    // not enough data available
-    return 1;
-  }
-  if (Serial.peek() != 0x24) {
-    // magic char: $ (0x24)
-    // no data for us, skip
-    return 1;
-  }
+int read_tile_from_serial(byte *buf, size_t len, tile_info_t *tile) {
 
-  //TODO: read tile (cs_pin, led rgb, led_action)
+  tile->cs_pin = buf[0];
+  tile->red = buf[1];
+  tile->green = buf[2];
+  tile->blue = buf[3];
+  tile->action = (led_action) buf[4];
 
-  return 1;
+#ifdef DEBUG
+  Serial.println("Received tile form serial:");
+  Serial.print(" cs_pin: ");
+  Serial.println(tile->cs_pin);
+  Serial.print(" red   : ");
+  Serial.println(tile->red);
+  Serial.print(" green : ");
+  Serial.println(tile->green);
+  Serial.print(" blue  : ");
+  Serial.println(tile->blue);
+  Serial.print(" action: ");
+  Serial.println(tile->action);
+#endif
+  return 0;
 }
 
 
@@ -108,10 +121,10 @@ void print_tile_prefix(tile_info_t *tile) {
   Serial.print("]: ");
 }
 
-void handle_incoming_tile() {
+void handle_incoming_tile(byte *buf, size_t len) {
     tile_info_t incoming_tile;
     incoming_tile.cs_pin = UINT8_MAX;
-    int ret = read_tile_from_serial(&incoming_tile);
+    int ret = read_tile_from_serial(buf, len, &incoming_tile);
     if (ret == 0) {
       Serial.print(F("read tile "));
       Serial.print(incoming_tile.cs_pin);
@@ -140,8 +153,25 @@ void handle_incoming_tile() {
 }
 
 void loop() {
-  if (Serial.available() > 0) {
-    handle_incoming_tile();
+  if (Serial.available() > 3) {
+    // magic sequence: ###$
+    if (Serial.peek() == 0x23) { // #
+      byte buf[50];
+      Serial.readBytesUntil(0x24, buf, 4); // read until $
+      uint8_t len = Serial.read();
+      if (len > 50) {
+        Serial.print("raspberry wanted me to read more than 50 bytes: ");
+        Serial.println(len);
+        Serial.println("I'm not doing that.");
+        return;
+      }
+      Serial.print("Reading ");
+      Serial.print(len);
+      Serial.println(" bytes form raspberry to buffer.");
+      Serial.readBytes(buf, len);
+      handle_incoming_tile(buf, len);
+      
+    }
   }
 
   MFRC522* reader = NULL;
@@ -188,6 +218,9 @@ void loop() {
           Serial.print("new card, uid=");
           dump_byte_array(reader->uid.uidByte, reader->uid.size);
           Serial.println();
+          leds.setPixelColor(tile->led_start, leds.Color(0, 255, 255));
+          leds.setPixelColor(tile->led_start+1, leds.Color(255, 0, 255));
+          leds.show();
         }
         memcpy(tile->tag_id, reader->uid.uidByte, reader->uid.size);
       }
@@ -201,6 +234,9 @@ void loop() {
         memset(tile->tag_id, 0, 4);
         print_tile_prefix(tile);
         Serial.println("card removed.");
+        leds.setPixelColor(tile->led_start, leds.Color(0, 0, 0));
+        leds.setPixelColor(tile->led_start+1, leds.Color(0, 0, 0));
+        leds.show();
       }
     }
 

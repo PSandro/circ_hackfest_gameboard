@@ -15,11 +15,13 @@ typedef struct
 
     uint8_t cs_pin;
 
+    uint8_t led_start;
+
     uint8_t tag_id[4];
 
-    short red;
-    short green;
-    short blue;
+    uint8_t red;
+    uint8_t green;
+    uint8_t blue;
     led_action action;
 
 } tile_info_t;
