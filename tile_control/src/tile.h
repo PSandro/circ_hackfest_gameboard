@@ -19,9 +19,14 @@ typedef struct
 
     uint8_t tag_id[4];
 
-    uint8_t red;
-    uint8_t green;
-    uint8_t blue;
+    uint8_t red_1;
+    uint8_t green_1;
+    uint8_t blue_1;
+
+    uint8_t red_2;
+    uint8_t green_2;
+    uint8_t blue_2;
+
     led_action action;
 
 } tile_info_t;

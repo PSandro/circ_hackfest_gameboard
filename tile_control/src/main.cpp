@@ -84,29 +84,56 @@ void setup() {
 
 
 int send_tile_to_serial(tile_info_t tile) {
-  //TODO: implement
+  char buf[8 + sizeof(tile.tag_id)];
+  buf[0] = tile.cs_pin;
+  buf[1] = tile.is_healthy;
+  buf[2] = tile.red_1;
+  buf[3] = tile.green_1;
+  buf[4] = tile.blue_1;
+  buf[5] = tile.red_2;
+  buf[6] = tile.green_2;
+  buf[7] = tile.blue_2;
+  memcpy(buf + 8, tile.tag_id, sizeof(tile.tag_id));
+
+  Serial.println();
+  Serial.write(0x23);
+  Serial.write(0x23);
+  Serial.write(0x23);
+  Serial.write(0x24);
+  Serial.write(sizeof(buf));
+  Serial.write(buf, sizeof(buf));
   Serial.flush();
+  Serial.println();
   return 0;
 }
 
 int read_tile_from_serial(byte *buf, size_t len, tile_info_t *tile) {
 
   tile->cs_pin = buf[0];
-  tile->red = buf[1];
-  tile->green = buf[2];
-  tile->blue = buf[3];
-  tile->action = (led_action) buf[4];
+  tile->red_1 = buf[1];
+  tile->green_1 = buf[2];
+  tile->blue_1 = buf[3];
+  tile->red_2 = buf[4];
+  tile->green_2 = buf[5];
+  tile->blue_2 = buf[6];
+  tile->action = (led_action) buf[7];
 
 #ifdef DEBUG
   Serial.println("Received tile form serial:");
   Serial.print(" cs_pin: ");
   Serial.println(tile->cs_pin);
-  Serial.print(" red   : ");
-  Serial.println(tile->red);
-  Serial.print(" green : ");
-  Serial.println(tile->green);
-  Serial.print(" blue  : ");
-  Serial.println(tile->blue);
+  Serial.print(" red1  : ");
+  Serial.println(tile->red_1);
+  Serial.print(" green1: ");
+  Serial.println(tile->green_1);
+  Serial.print(" blue1 : ");
+  Serial.println(tile->blue_1);
+  Serial.print(" red2  : ");
+  Serial.println(tile->red_2);
+  Serial.print(" green2: ");
+  Serial.println(tile->green_2);
+  Serial.print(" blue2 : ");
+  Serial.println(tile->blue_2);
   Serial.print(" action: ");
   Serial.println(tile->action);
 #endif
@@ -141,9 +168,12 @@ void handle_incoming_tile(byte *buf, size_t len) {
         return;
       }
 
-      local_tile->red = incoming_tile.red;
-      local_tile->green = incoming_tile.green;
-      local_tile->blue = incoming_tile.blue;
+      local_tile->red_1 = incoming_tile.red_1;
+      local_tile->green_1 = incoming_tile.green_1;
+      local_tile->blue_1 = incoming_tile.blue_1;
+      local_tile->red_2 = incoming_tile.red_2;
+      local_tile->green_2 = incoming_tile.green_2;
+      local_tile->blue_2 = incoming_tile.blue_2;
       local_tile->action = incoming_tile.action;
 
       Serial.println(F("tile saved to local state."));
