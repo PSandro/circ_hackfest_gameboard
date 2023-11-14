@@ -1,3 +1,5 @@
+from enum import Enum
+
 class Player():
     def __init__(self):
         # number of money and resources for player
@@ -36,14 +38,14 @@ class Game():
 
         # TODO initiate and hard-code fields
 
-    def game_loop(self):
+    def game_tick(self):
         for player in self.players:
-            self.current_round++
+            self.current_round += 1
 
             # update player's attributes
             player.money += len(products)
             for product in products:
-                product.age++
+                product.age += 1
 
             # handle: does player move or do they stay
             # if move: update current_position_id; player can build at the new position
@@ -52,6 +54,7 @@ class Game():
             for product in products:
                 if product.age > 3: # TODO verify
                     # find field by product.field_id and set status from PRODUCT to WASTE
+                    pass
                 else:
                     new_product_list.append(product)
             player.products = new_product_list
