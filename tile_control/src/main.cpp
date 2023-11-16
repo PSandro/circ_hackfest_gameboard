@@ -80,6 +80,9 @@ void setup() {
     Serial.flush();
     mfrc522[i].PCD_DumpVersionToSerial();
   }
+
+  Serial.println();
+  Serial.println("###!ready");
 }
 
 
@@ -183,6 +186,8 @@ void handle_incoming_tile(byte *buf, size_t len) {
 }
 
 void loop() {
+  Serial.println();
+  Serial.println("###!alive");
   if (Serial.available() > 3) {
     // magic sequence: ###$
     if (Serial.peek() == 0x23) { // #
@@ -275,5 +280,14 @@ void loop() {
     if (ret != 0) {
       Serial.println("Could not send tile to serial!");
     }
+
+    // update leds
+      leds.setPixelColor(tile->led_start, leds.Color(
+            tile->red_1, tile->green_1, tile->blue_1
+            ));
+      leds.setPixelColor(tile->led_start + 1, leds.Color(
+            tile->red_2, tile->green_2, tile->blue_2
+            ));
+      leds.show();
   }
 }

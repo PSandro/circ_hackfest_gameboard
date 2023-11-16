@@ -1,7 +1,8 @@
 from dataclasses import dataclass
 import serial
+import time
 import random
-ser = serial.Serial('/dev/ttyUSB0')
+ser = serial.Serial('/dev/ttyUSB0', baudrate=115200)
 
 
 @dataclass
@@ -30,9 +31,22 @@ def send_color(cs_pin, led1: Color, led2: Color, action: int):
     return b'###$' + len(buf).to_bytes(1, byteorder='big') + buf
 
 
-for i in range(3, 10):
+while True:
+    line = ser.readline()
+    if line.startswith(b'###!ready'):
+        print("flower setup complete")
+        break
+    elif line.startswith(b'###!alive'):
+        print("got flower heartbeat")
+        break
+
+while True:
+    rand_tile = random.randrange(0, 10)
+    print(f"Setting color for tile {rand_tile}")
     col = Color(random.randrange(0, 255), random.randrange(0, 255), random.randrange(0, 255))
-    data = send_color(i, col, col, 0)
+    data = send_color(rand_tile, col, col, 0)
     print(data)
     ser.write(data)
+    time.sleep(1)
+
 ser.close()
