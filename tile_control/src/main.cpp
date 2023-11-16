@@ -6,6 +6,8 @@
 
 #define DEBUG
 
+#define SIMPLE
+
 #define RST_PIN 10
 
 #define LED_PIN 2
@@ -71,6 +73,7 @@ void setup() {
   leds.begin();
   SPI.begin();
 
+#ifndef SIMPLE
   for (size_t i = 0; i < NR_OF_TILES; i++) {
     delay(50);
     mfrc522[i].PCD_Init(tiles[i].cs_pin, RST_PIN); // Init each MFRC522 card
@@ -80,6 +83,7 @@ void setup() {
     Serial.flush();
     mfrc522[i].PCD_DumpVersionToSerial();
   }
+#endif
 
   Serial.println();
   Serial.println("###!ready");
@@ -185,7 +189,74 @@ void handle_incoming_tile(byte *buf, size_t len) {
     }
 }
 
+int step = 0;
 void loop() {
+#ifdef SIMPLE
+  Serial.println("Start the magic");
+  delay(2000);
+  if (step == 0) {
+    tile_info_t tile9 = *find_tile_by_cs(9);
+    tile_info_t tile5 = *find_tile_by_cs(5);
+    leds.clear();
+    leds.setPixelColor(tile9.led_start, leds.Color(255, 0, 0));
+    leds.setPixelColor(tile9.led_start+1, leds.Color(255, 255, 0));
+
+    leds.setPixelColor(tile5.led_start, leds.Color(255, 0, 0));
+    leds.setPixelColor(tile5.led_start+1, leds.Color(255, 255, 0));
+  } else if (step == 1) {
+    tile_info_t tile3 = *find_tile_by_cs(3);
+    leds.setPixelColor(tile3.led_start, leds.Color(255, 255, 255));
+    leds.setPixelColor(tile3.led_start+1, leds.Color(255, 255, 255));
+  } else if (step == 2) {
+    tile_info_t tile = *find_tile_by_cs(8);
+    leds.setPixelColor(tile.led_start, leds.Color(0, 255, 0));
+    leds.setPixelColor(tile.led_start+1, leds.Color(0, 255, 0));
+  } else if (step == 3) {
+    tile_info_t tile = *find_tile_by_cs(7);
+    leds.setPixelColor(tile.led_start, leds.Color(255, 0, 0));
+    leds.setPixelColor(tile.led_start+1, leds.Color(255, 255, 0));
+    tile_info_t tile9 = *find_tile_by_cs(9);
+    leds.setPixelColor(tile9.led_start, leds.Color(0, 0, 0));
+    leds.setPixelColor(tile9.led_start+1, leds.Color(0, 0, 0));
+  } else if (step == 4) {
+    tile_info_t tile = *find_tile_by_cs(7);
+    tile_info_t tile2 = *find_tile_by_cs(5);
+
+    for (int i = 0; i < 10; i++) {
+      leds.setPixelColor(tile.led_start, leds.Color(255, 0, 0));
+      leds.setPixelColor(tile.led_start+1, leds.Color(255, 255, 0));
+      leds.setPixelColor(tile2.led_start, leds.Color(255, 0, 0));
+      leds.setPixelColor(tile2.led_start+1, leds.Color(255, 255, 0));
+      leds.show();
+      delay(50);
+      leds.setPixelColor(tile.led_start, leds.Color(255, 255, 0));
+      leds.setPixelColor(tile.led_start+1, leds.Color(255, 0, 0));
+      leds.setPixelColor(tile2.led_start, leds.Color(255, 255, 0));
+      leds.setPixelColor(tile2.led_start+1, leds.Color(255, 0, 0));
+      leds.show();
+      delay(50);
+    }
+  } else if (step == 5) {
+    tile_info_t tile = *find_tile_by_cs(7);
+    tile_info_t tile2 = *find_tile_by_cs(5);
+
+    leds.setPixelColor(tile.led_start, leds.Color(255, 0, 0));
+    leds.setPixelColor(tile.led_start+1, leds.Color(255, 0, 0));
+    leds.setPixelColor(tile2.led_start, leds.Color(255, 0, 0));
+    leds.setPixelColor(tile2.led_start+1, leds.Color(255, 0, 0));
+    leds.show();
+  } else {
+    step = 0;
+    delay(5000);
+    return;
+  }
+
+  leds.show();
+  ++step;
+
+#endif
+
+#ifndef SIMPLE
   Serial.println();
   Serial.println("###!alive");
   if (Serial.available() > 3) {
@@ -290,4 +361,5 @@ void loop() {
             ));
       leds.show();
   }
+#endif
 }
